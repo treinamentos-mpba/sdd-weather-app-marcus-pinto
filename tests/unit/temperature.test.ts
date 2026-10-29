@@ -1,29 +1,37 @@
-import { describe, it, expect } from 'vitest';
-import {
-  toFahrenheit,
-  convertTemperature,
-  formatTemperature,
-  unitLabel,
-} from '../../src/lib/temperature';
+import { describe, expect, it } from 'vitest';
+import { convertTemperature, formatTemperature, unitLabel } from '../../src/lib/temperature';
 
-describe('temperature', () => {
-  it('converte Celsius para Fahrenheit corretamente', () => {
-    expect(toFahrenheit(0)).toBe(32);
-    expect(toFahrenheit(100)).toBe(212);
-    expect(toFahrenheit(-40)).toBe(-40);
+describe('convertTemperature', () => {
+  it.each([
+    [0, 32],
+    [100, 212],
+    [-40, -40],
+  ])('converte %i °C para %i °F', (temperatureC, expectedFahrenheit) => {
+    expect(convertTemperature(temperatureC, 'fahrenheit')).toBe(expectedFahrenheit);
   });
 
-  it('convertTemperature respeita a unidade', () => {
-    expect(convertTemperature(20, 'celsius')).toBe(20);
-    expect(convertTemperature(0, 'fahrenheit')).toBe(32);
+  it('mantém o valor em Celsius quando a unidade selecionada é Celsius', () => {
+    expect(convertTemperature(23.5, 'celsius')).toBe(23.5);
+  });
+});
+
+describe('formatTemperature', () => {
+  it.each([
+    [20.4, 'celsius', '20 °C'],
+    [20.4, 'fahrenheit', '69 °F'],
+    [-10.5, 'celsius', '-11 °C'],
+    [-0.1, 'celsius', '0 °C'],
+  ] as const)('formata %s °C na unidade %s como %s', (temperatureC, unit, expected) => {
+    expect(formatTemperature(temperatureC, unit)).toBe(expected);
   });
 
-  it('formata com símbolo de grau e arredondamento', () => {
-    expect(formatTemperature(20.4, 'celsius')).toBe('20°');
-    expect(formatTemperature(0, 'fahrenheit')).toBe('32°');
+  it('exibe um travessão quando a temperatura está indisponível', () => {
+    expect(formatTemperature(null, 'celsius')).toBe('—');
   });
+});
 
-  it('retorna o rótulo da unidade', () => {
+describe('unitLabel', () => {
+  it('retorna o símbolo correto para cada unidade', () => {
     expect(unitLabel('celsius')).toBe('°C');
     expect(unitLabel('fahrenheit')).toBe('°F');
   });

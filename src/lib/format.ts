@@ -1,44 +1,70 @@
-/**
- * Funções puras de formatação de datas para a previsão.
- */
+const weekdayFormatter = new Intl.DateTimeFormat('pt-BR', {
+  weekday: 'long',
+  timeZone: 'UTC',
+});
+const shortDateFormatter = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+  timeZone: 'UTC',
+});
+const referenceDateFormatter = new Intl.DateTimeFormat('pt-BR', {
+  day: '2-digit',
+  month: '2-digit',
+  year: 'numeric',
+  timeZone: 'UTC',
+});
 
-const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-const MONTHS = [
-  'Jan',
-  'Fev',
-  'Mar',
-  'Abr',
-  'Mai',
-  'Jun',
-  'Jul',
-  'Ago',
-  'Set',
-  'Out',
-  'Nov',
-  'Dez',
-];
+function parseCalendarDate(date: string): Date | null {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!match) return null;
 
-/** Faz parse de uma data ISO (YYYY-MM-DD) como data local, sem fuso. */
-function parseLocalDate(iso: string): Date {
-  const [year, month, day] = iso.split('-').map(Number);
-  return new Date(year, (month ?? 1) - 1, day ?? 1);
+  const [, yearText, monthText, dayText] = match;
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  const calendarDate = new Date(Date.UTC(year, month - 1, day, 12));
+
+  if (
+    calendarDate.getUTCFullYear() !== year ||
+    calendarDate.getUTCMonth() !== month - 1 ||
+    calendarDate.getUTCDate() !== day
+  ) {
+    return null;
+  }
+
+  return calendarDate;
 }
 
-/**
- * Rótulo do dia relativo a "hoje":
- * - índice 0 → "Hoje"
- * - índice 1 → "Amanhã"
- * - demais → dia da semana abreviado
- */
-export function getDayLabel(iso: string, index: number): string {
+/** Retorna Hoje, Amanhã ou o dia da semana para uma previsão indexada. */
+export function formatDayLabel(index: number, date: string): string {
+  const calendarDate = parseCalendarDate(date);
+  if (!calendarDate) return 'Data indisponível';
   if (index === 0) return 'Hoje';
   if (index === 1) return 'Amanhã';
-  const date = parseLocalDate(iso);
-  return WEEKDAYS[date.getDay()];
+
+  const weekday = weekdayFormatter.format(calendarDate);
+
+  return `${weekday.charAt(0).toLocaleUpperCase('pt-BR')}${weekday.slice(1)}`;
 }
 
-/** Formata a data como "12 Jun". */
-export function getShortDate(iso: string): string {
-  const date = parseLocalDate(iso);
-  return `${date.getDate()} ${MONTHS[date.getMonth()]}`;
+/** Retorna uma data de calendário no formato curto DD/MM. */
+export function getShortDate(date: string): string {
+  const calendarDate = parseCalendarDate(date);
+  if (!calendarDate) return '—';
+
+  return shortDateFormatter.format(calendarDate);
+}
+
+/** Formata o horário local de observação sem reinterpretá-lo no fuso do dispositivo. */
+export function formatWeatherReference(observedAt: string | null, timezone: string | null): string {
+  if (!observedAt) return 'Referência temporal indisponível';
+
+  const match = /^(\d{4}-\d{2}-\d{2})T([01]\d|2[0-3]):([0-5]\d)(?::[0-5]\d)?$/.exec(observedAt);
+  if (!match) return 'Referência temporal indisponível';
+
+  const calendarDate = parseCalendarDate(match[1]);
+  if (!calendarDate) return 'Referência temporal indisponível';
+
+  const timezoneLabel = timezone?.trim() || 'fuso indisponível';
+  return `Referência temporal: ${referenceDateFormatter.format(calendarDate)} às ${match[2]}:${match[3]} (${timezoneLabel})`;
 }

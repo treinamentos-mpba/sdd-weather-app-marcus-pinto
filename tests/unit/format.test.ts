@@ -1,18 +1,50 @@
-import { describe, it, expect } from 'vitest';
-import { getDayLabel, getShortDate } from '../../src/lib/format';
+import { describe, expect, it } from 'vitest';
+import { formatDayLabel, formatWeatherReference, getShortDate } from '../../src/lib/format';
 
-describe('format', () => {
-  it('rotula o primeiro e o segundo dia', () => {
-    expect(getDayLabel('2026-06-16', 0)).toBe('Hoje');
-    expect(getDayLabel('2026-06-17', 1)).toBe('Amanhã');
+describe('formatDayLabel', () => {
+  it('rotula o primeiro dia como Hoje', () => {
+    expect(formatDayLabel(0, '2026-10-29')).toBe('Hoje');
   });
 
-  it('usa dia da semana para os demais', () => {
-    // 2026-06-18 é uma quinta-feira.
-    expect(getDayLabel('2026-06-18', 2)).toBe('Qui');
+  it('rotula o segundo dia como Amanhã', () => {
+    expect(formatDayLabel(1, '2026-10-30')).toBe('Amanhã');
   });
 
-  it('formata data curta', () => {
-    expect(getShortDate('2026-06-16')).toBe('16 Jun');
+  it('usa o dia da semana a partir do terceiro item', () => {
+    expect(formatDayLabel(2, '2026-10-31')).toBe('Sábado');
+  });
+
+  it('retorna fallback para uma data inválida', () => {
+    expect(formatDayLabel(0, '2026-02-30')).toBe('Data indisponível');
+  });
+});
+
+describe('getShortDate', () => {
+  it('formata a data no padrão DD/MM', () => {
+    expect(getShortDate('2026-10-29')).toBe('29/10');
+  });
+
+  it('retorna fallback para uma data inválida', () => {
+    expect(getShortDate('data inválida')).toBe('—');
+  });
+});
+
+describe('formatWeatherReference', () => {
+  it('preserva data e hora local e informa o fuso fornecido', () => {
+    expect(formatWeatherReference('2026-10-29T09:00', 'America/Sao_Paulo')).toBe(
+      'Referência temporal: 29/10/2026 às 09:00 (America/Sao_Paulo)',
+    );
+  });
+
+  it('informa indisponibilidade sem inventar horário', () => {
+    expect(formatWeatherReference(null, 'America/Sao_Paulo')).toBe(
+      'Referência temporal indisponível',
+    );
+  });
+
+  it('identifica o fuso como indisponível quando só o timezone falta', () => {
+    expect(formatWeatherReference('2026-10-29T09:00', null)).toBe(
+      'Referência temporal: 29/10/2026 às 09:00 (fuso indisponível)',
+    );
   });
 });

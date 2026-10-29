@@ -1,51 +1,47 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, it, expect } from 'vitest';
 import { useState } from 'react';
-import UnitToggle from '../../src/components/UnitToggle';
+import { describe, expect, it } from 'vitest';
 import CurrentWeather from '../../src/components/CurrentWeather';
-import type { City, CurrentWeather as CurrentWeatherType, Unit } from '../../src/types/weather';
+import UnitToggle from '../../src/components/UnitToggle';
+import type { Unit } from '../../src/types/weather';
 
-const city: City = {
-  id: 1,
-  name: 'Seattle',
-  country: 'Estados Unidos',
-  admin1: 'Washington',
-  latitude: 47.6,
-  longitude: -122.33,
-};
-
-const current: CurrentWeatherType = {
-  time: '2026-06-16T12:00',
-  temperature: 0, // 0°C => 32°F (fácil de verificar)
-  humidity: 80,
-  windSpeed: 10,
-  pressure: 1015,
-  precipitation: 0,
-  weatherCode: 3,
-};
-
-function Harness() {
+function WeatherWithUnitToggle() {
   const [unit, setUnit] = useState<Unit>('celsius');
+
   return (
     <>
       <UnitToggle unit={unit} onChange={setUnit} />
-      <CurrentWeather city={city} current={current} unit={unit} />
+      <CurrentWeather
+        city={{ name: 'Lisboa', latitude: 38.7167, longitude: -9.1333 }}
+        current={{
+          temperatureC: 0,
+          weatherCode: 0,
+          observedAt: '2026-10-29T14:00',
+          humidityPercent: null,
+          windSpeedKmh: null,
+          precipitationMm: null,
+          pressureHPa: null,
+        }}
+        unit={unit}
+        timezone="Europe/Lisbon"
+      />
     </>
   );
 }
 
-describe('UnitToggle + CurrentWeather', () => {
-  it('converte a temperatura ao alternar a unidade', async () => {
-    render(<Harness />);
-    expect(screen.getByText('0°')).toBeInTheDocument();
+describe('UnitToggle com CurrentWeather', () => {
+  it('exibe 32 °F após selecionar Fahrenheit para 0 °C', async () => {
+    const user = userEvent.setup();
+    render(<WeatherWithUnitToggle />);
 
-    await userEvent.click(screen.getByRole('button', { name: '°F' }));
-    expect(screen.getByText('32°')).toBeInTheDocument();
-  });
+    expect(screen.getByText('0 °C')).toBeVisible();
+    await user.click(screen.getByRole('button', { name: 'Fahrenheit' }));
 
-  it('expõe os botões com estado pressionado acessível', () => {
-    render(<Harness />);
-    expect(screen.getByRole('button', { name: '°C' })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('32 °F')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Fahrenheit' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
   });
 });

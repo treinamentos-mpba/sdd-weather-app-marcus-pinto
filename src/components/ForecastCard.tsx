@@ -1,7 +1,9 @@
-import type { ForecastDay, Unit } from '../types/weather';
+import { formatDayLabel, getShortDate } from '../lib/format';
 import { formatTemperature } from '../lib/temperature';
-import { getWeatherIcon, getWeatherLabel } from '../lib/weatherCodes';
-import { getDayLabel, getShortDate } from '../lib/format';
+import { getWeatherPresentation } from '../lib/weatherCodes';
+import type { ForecastDay, Unit } from '../types/weather';
+
+const probabilityFormatter = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 0 });
 
 interface ForecastCardProps {
   day: ForecastDay;
@@ -9,20 +11,47 @@ interface ForecastCardProps {
   unit: Unit;
 }
 
-/** Card de um dia da previsão. */
+function formatProbability(probability: number | null | undefined): string {
+  if (probability === null || probability === undefined || !Number.isFinite(probability))
+    return '—';
+  return `${probabilityFormatter.format(probability)}%`;
+}
+
 export default function ForecastCard({ day, index, unit }: ForecastCardProps) {
+  const dayLabel = formatDayLabel(index, day.date);
+  const weather = getWeatherPresentation(day.weatherCode ?? null);
+
   return (
-    <li className="flex flex-col items-center gap-2 rounded-xl border border-white/10 bg-white/5 p-4 text-center backdrop-blur-md">
-      <p className="font-semibold">{getDayLabel(day.date, index)}</p>
-      <p className="text-xs text-white/50">{getShortDate(day.date)}</p>
-      <span aria-hidden="true" className="text-3xl" title={getWeatherLabel(day.weatherCode)}>
-        {getWeatherIcon(day.weatherCode)}
-      </span>
-      <p className="text-sm">
-        <span className="font-semibold">{formatTemperature(day.max, unit)}</span>{' '}
-        <span className="text-white/50">{formatTemperature(day.min, unit)}</span>
-      </p>
-      <p className="text-xs text-accent-400">💧 {day.precipitationProbability}%</p>
-    </li>
+    <article
+      aria-label={`Previsão para ${dayLabel}: ${weather.description}`}
+      className="flex min-h-52 flex-col rounded-lg border border-white/10 bg-white/5 p-4 text-white backdrop-blur-md"
+    >
+      <div>
+        <h3 className="text-sm font-semibold text-white">{dayLabel}</h3>
+        <p className="mt-0.5 text-xs text-white/75">{getShortDate(day.date)}</p>
+      </div>
+
+      <div className="my-4 flex flex-1 flex-col items-center justify-center gap-2 text-center">
+        <span aria-hidden="true" className="text-3xl leading-none">
+          {weather.icon}
+        </span>
+        <p className="text-xs text-white/70">{weather.description}</p>
+      </div>
+
+      <dl className="grid grid-cols-2 gap-x-3 gap-y-2 border-t border-white/10 pt-3 text-sm">
+        <dt className="text-white/60">Máx.</dt>
+        <dd className="text-right font-semibold">
+          {formatTemperature(day.temperatureMaxC ?? null, unit)}
+        </dd>
+        <dt className="text-white/60">Mín.</dt>
+        <dd className="text-right font-medium text-white/80">
+          {formatTemperature(day.temperatureMinC ?? null, unit)}
+        </dd>
+        <dt className="text-white/60">Chuva</dt>
+        <dd className="text-right font-medium text-white/80">
+          {formatProbability(day.precipitationProbabilityPercent)}
+        </dd>
+      </dl>
+    </article>
   );
 }
